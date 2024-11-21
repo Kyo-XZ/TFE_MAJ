@@ -1,0 +1,216 @@
+{% extends "base_checkout.html" %}
+{% load price_filter %}
+
+
+{% block content %}
+
+
+
+<div  class="main_content">
+    <div  class="section">
+        <div  class="container">
+
+            <div  class="row">
+                <div  class="col-md-6">
+                    <div  class="heading_s1">
+                        <h4 >Information Facturation</h4>
+                    </div>
+                    {% if user.is_authenticated %}
+                        {% if user.addresses.all %}
+                        <!-- Cas ou l'utilisateur a des adresses-->
+                            <select name="address_billing_id" id="address_billing_id" class="form-control">
+                                {% for address in user.addresses.all %}
+                                    <option value="{{address.id}}">
+                                        {{address.full_name}} - {{address.street}}  {{address.city}}  {{address.code_postal}}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="shipping_address_form d-none">
+                                <div  class="heading_s1">
+                                    <h4 >Information Livraison</h4>
+                                </div>
+                                <!-- Selection d'une adresse différente pour la livraison -->
+                                <select name="address_shipping_id" id="address_shipping_id" class="form-control">
+                                    {% for address in user.addresses.all %}
+                                        <option value="{{address.id}}">
+                                            {{address.full_name}} - {{address.street}}  {{address.city}}  {{address.code_postal}}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <!-- Checkbox pour l'adresse de facturation -->
+                            <div class="form-check form-switch">
+                                <input class="addNewAddress form-check-input" type="checkbox" id="add_new_address">
+                                <label class="form-check-label" for="flexSwitchCheckChecked">Voulez-vous ajouté une nouvelle adresse ?</label>
+                            </div>
+                            <!-- Checkbox pour demander s'il veut utiliser une autre addresse pour la livraison -->
+                            <div class="form-check form-switch">
+                                <input class="newShippingAddress form-check-input" type="checkbox" id="new_shipping_address"> 
+                                <label class="form-check-label" for="flexSwitchCheckChecked">Voulez-vous utilisé une adresse différente pour la livraison ?</label>
+                            </div>
+                            
+                            <!-- Cas ou l'utilisateur active la checkbox pour enregistrer un nouveau formulaire (apparition du formulaire)-->
+                            <form class="d-none" id="addNewAddressForm" action="{% url 'shop:add_address' %}" method="post">
+                                {% csrf_token %}
+                                {{ address_form }}
+                                <button type="submit" class="btn btn-success my-1">Enregistrer</button>
+                            </form>
+                        {% else %}
+                        <!-- Cas ou l'utilisateur n'a pas d'adresses (affichage du formulaire)-->
+                            <form action="{% url 'shop:add_address' %}" method="post">
+                                {% csrf_token %}
+                                {{ address_form }}
+                                <button type="submit" class="btn btn-success my-1">Enregistrer</button>
+                            </form>
+                        {% endif %}
+                    {% endif %}
+                    <div  class="heading_s1">
+                        <h4 >Changer Societe Livraison</h4>
+                        <select class="form-control" name="carrier_id" id="carrier_id">
+                            {% for carrier in carriers %}
+                                <option {% if cart.carrier_id == carrier.id %} selected {% endif %} value="{{ carrier.id }}">{{ carrier.name }} ({{ carrier.price | format_price }})</option>
+                            {% endfor %}
+                        </select>
+
+                    </div>
+
+                </div>
+                <div  class="col-md-6">
+                    <div  class="order_review">
+                        <div  class="heading_s1">
+                            <h4 >Your Orders</h4>
+                        </div>
+                        <div  class="table-responsive order_table">
+                            <table  class="table">
+                                <thead >
+                                    <tr >
+                                        <th >Image</th>
+                                        <th >Product</th>
+                                        <th >Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody >
+                                    <!-- Boucle d'affichage des produits du panier -->
+                                    {% for item in cart.items %}
+                                    <tr >
+                                        <td  class="product-thumbnail">
+                                            <a>
+                                                <img  width="25" height="25" alt="product : {{ item.product.name }}" src="{{ item.product.image }}">
+                                            </a>
+                                        </td>
+                                        <td >{{ item.product.name }} 
+                                            <span class="product-price">{{ item.product.solde_price | format_price }}</span>
+                                            <span class="product-qty">x {{ item.quantity }}</span></td>
+                                        <td >{{ item.sub_total_ttc | format_price }}</td>
+                                    </tr>
+                                   {% endfor %}
+
+                                </tbody>
+                                <tfoot >
+                                    <tr >
+                                        <th>HT</th>
+                                        <td></td>
+                                        <td class="product-subtotal"><span class="cart_price"><span class="price_symbole"></span></span>{{ cart.sub_total_ht | format_price }}</td>
+                                    </tr>
+                                    <tr >
+                                        <th>Taxe</th>
+                                        <td></td>
+                                        <td class="product-tax"><span class="cart_price"><span class="price_symbole"></span></span>{{ cart.taxe_amount | format_price }}</td>
+                                    </tr>
+                                    <tr >
+                                        <th>Livraison ({{cart.carrier_name}})</th>
+                                        <td></td>
+                                        <td><span class="cart_price"><span class="price_symbole"></span></span>{{ cart.shipping_price | format_price }}</td>
+                                    </tr>
+                                    <tr >
+                                        <th>Total</th>
+                                        <td></td>
+                                        <td class="product-subtotal"><span class="cart_price"><span class="price_symbole"></span></span>{{ cart.sub_total_with_shipping | format_price }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        <div  class="payment_method">
+
+                        </div>
+                        <a  href="#" class="btn btn-fill-out btn-block">Payer
+                            ({{ cart.sub_total_with_shipping | format_price }})</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+    //récupéaration de l'input de la checkbox pour l'apparition du formulaire
+    addAddressInput = document.querySelector('input.addNewAddress')
+
+    //récupéaration de l'input de la checkbox pour savoir si l'adresse de livraison est différente de l'adresse de facturation
+    addShippingAddressInput = document.querySelector('input.newShippingAddress')
+
+    //récupéaration du formulaire nouvelle adresse si checkbox cocher
+    addAddressForm = document.querySelector('form#addNewAddressForm')
+
+    //récupéaration 
+    shippingAddressForm = document.querySelector('.shipping_address_form')
+
+    // récupération du transporteur choisi dans le select
+    carrierForm = document.querySelector('select#carrier_id')
+
+    //fonction de mise à jour en fonction du choix du transporteur
+    const updateCarrier = (event) => {
+        const { name, value } = event.target
+       
+        //On vérifie si carrier id est défini ou non 
+        if (!carrier_id) {
+            return
+        }
+
+        const queryParams = new URLSearchParams(window.location.search)
+
+        if (queryParams.has(name)) {
+            queryParams.set(name, value)
+        } else {
+            queryParams.append(name, value)
+        }
+
+        //Récupération de la nouvelle url
+        const newUrl = `${window.location.origin}${window.location.pathname}?${queryParams.toString()}`
+
+        console.log(newUrl)
+
+        // Actualisez le navigateur avec la nouvelle URL
+        window.location.href = newUrl;
+    }
+    carrierForm.addEventListener('change', updateCarrier)
+
+    //fonction pour afficher le formulaire 
+    const displayForm = (event) =>{
+        const { checked} = event.target
+        if(checked){
+            addAddressForm.classList.remove('d-none')
+        }else{
+            addAddressForm.classList.add('d-none')
+        }
+    }
+    
+    //ecoute de add addresse input
+    addAddressInput.addEventListener('change', displayForm)
+
+    const addShippingAddress = (event) =>{
+        const { checked} = event.target
+        if(checked){
+            shippingAddressForm.classList.remove('d-none')
+        }else{
+            shippingAddressForm.classList.add('d-none')
+        }
+    }
+
+    //ecoute de l'input pour savoir si add fact =! de add livraison
+    addShippingAddressInput.addEventListener('change', addShippingAddress)
+</script>
+{% endblock %}
